@@ -7,19 +7,19 @@
 
 namespace {
 
-TEST(Grid, ConstructEmpty) {
+TEST(Grid, ConstructorEmpty) {
   ucgrid g;
   EXPECT_EQ(g.rows(), 0);
   EXPECT_EQ(g.cols(), 0);
 }
 
-TEST(Grid, ConstructRowsOnly) {
+TEST(Grid, ConstructorRowsOnly) {
   ucgrid g(50);
   EXPECT_EQ(g.rows(), 50);
   EXPECT_EQ(g.cols(), 1);
 }
 
-TEST(Grid, ConstructRowsAndColumns) {
+TEST(Grid, ConstructorRowsAndColumns) {
   ucgrid g(10, 20);
   EXPECT_EQ(g.rows(), 10);
   EXPECT_EQ(g.cols(), 20);
@@ -66,7 +66,7 @@ TEST(Grid, TransformDouble) {
 
 TEST(Grid, TransformLowConstant) {
   dgrid g(4);
-  g.clear(1);
+  g.fill(1);
   g.transform(5, 20);
   for (int i = 0; i < 4; ++i) {
     EXPECT_EQ(g(i), 5);
@@ -75,7 +75,7 @@ TEST(Grid, TransformLowConstant) {
 
 TEST(Grid, TransformBetweenConstant) {
   dgrid g(4);
-  g.clear(10);
+  g.fill(10);
   g.transform(5, 20);
   for (int i = 0; i < 4; ++i) {
     EXPECT_EQ(g(i), 10);
@@ -84,7 +84,7 @@ TEST(Grid, TransformBetweenConstant) {
 
 TEST(Grid, TransformHighConstant) {
   dgrid g(4);
-  g.clear(25);
+  g.fill(25);
   g.transform(5, 20);
   for (int i = 0; i < 4; ++i) {
     EXPECT_EQ(g(i), 20);
