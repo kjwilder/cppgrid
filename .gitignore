@@ -1,4 +1,4 @@
-# Prerequisites
+bazel*
 *.d
 
 # Compiled Object files
