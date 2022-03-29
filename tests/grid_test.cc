@@ -8,55 +8,67 @@
 namespace {
 
 TEST(Grid, ConstructorEmpty) {
-  ucgrid g;
+  grid<int> g;
   EXPECT_EQ(g.rows(), 0);
   EXPECT_EQ(g.cols(), 0);
 }
 
 TEST(Grid, ConstructorRowsOnly) {
-  ucgrid g(50);
+  grid<int> g(50);
   EXPECT_EQ(g.rows(), 50);
   EXPECT_EQ(g.cols(), 1);
 }
 
 TEST(Grid, ConstructorRowsAndColumns) {
-  ucgrid g(10, 20);
+  grid<int> g(10, 20);
   EXPECT_EQ(g.rows(), 10);
   EXPECT_EQ(g.cols(), 20);
 }
 
+TEST(Grid, ConstructorZeroColumns) {
+  grid<int> g(10, 0);
+  EXPECT_EQ(g.rows(), 10);
+  EXPECT_EQ(g.cols(), 0);
+  EXPECT_EQ(g.storage().size(), 0);
+}
+
 TEST(Grid, Inverse) {
-  dgrid g(2, 2);
-  g(0, 0) = 2;
-  g(0, 1) = 1;
-  g(1, 0) = 2;
-  g(1, 1) = 4;
-  dgrid gi = g.inverse();
+  grid<double> gi = grid<double>(2, 2, {2, 2, 1, 4}).inverse();
   EXPECT_NEAR(gi(0, 0), 2.0 / 3.0, 1e-6);
   EXPECT_NEAR(gi(0, 1), -1.0 / 6.0, 1e-6);
   EXPECT_NEAR(gi(1, 0), -1.0 / 3.0, 1e-6);
   EXPECT_NEAR(gi(1, 1), 1.0 / 3.0, 1e-6);
 }
 
+TEST(Grid, ScaleInt) {
+  EXPECT_EQ(
+      grid<int>(3, 1, {3, 5, 8}).scale(3),
+      grid<int>(3, 1, {1, 1, 3}));
+  EXPECT_EQ(
+      grid<int>(3, 1, {3, 5, -8}).scale(3),
+      grid<int>(3, 1, {1, 1, -3}));
+
+  EXPECT_EQ(grid<int>().scale(5), grid<int>());
+  EXPECT_EQ(grid<int>(1, 0).scale(5), grid<int>(1, 0));
+
+  EXPECT_EQ(grid<int>(2, 2, {0, 0, 0, 0}).scale(3),
+            grid<int>(2, 2, {0, 0, 0, 0}));
+}
+
+TEST(Grid, ScaleDouble) {
+  EXPECT_EQ(
+      grid<double>(3, 1, {3, 5, 8}).scale(3),
+      grid<double>(3, 1, {9.0 / 8.0, 15.0 / 8.0, 3}));
+}
+
 TEST(Grid, TransformInt) {
-  igrid g(4);
-  g(0) = 1;
-  g(1) = 2;
-  g(2) = 4;
-  g(3) = 8;
-  g.transform(5, 20);
-  EXPECT_EQ(g(0), 5);
-  EXPECT_EQ(g(1), 7);
-  EXPECT_EQ(g(2), 11);
-  EXPECT_EQ(g(3), 20);
+  EXPECT_EQ(
+      grid<int>(4, 1, {1, 2, 4, 8}).transform(5, 20),
+      grid<int>(4, 1, {5, 7, 11, 20}));
 }
 
 TEST(Grid, TransformDouble) {
-  dgrid g(4);
-  g(0) = 1;
-  g(1) = 2;
-  g(2) = 4;
-  g(3) = 8;
+  grid<double> g(4, 1, {1, 2, 4, 8});
   g.transform(5, 20);
   EXPECT_NEAR(g(0), 5.0, 1e-6);
   EXPECT_NEAR(g(1), 7.1428571, 1e-6);
@@ -64,31 +76,28 @@ TEST(Grid, TransformDouble) {
   EXPECT_NEAR(g(3), 20.0, 1e-6);
 }
 
-TEST(Grid, TransformLowConstant) {
-  dgrid g(4);
-  g.fill(1);
-  g.transform(5, 20);
-  for (int i = 0; i < 4; ++i) {
-    EXPECT_EQ(g(i), 5);
-  }
+TEST(Grid, TransformConstants) {
+  // Transform [1, 1, 1, 1] -> range [5, 20], transform to min value 5.
+  EXPECT_EQ(grid<double>(4).fill(1).transform(5, 20), 5);
+  // Transform [10, 10, 10, 10] -> range [5, 20], in-range value 10 unchanged.
+  EXPECT_EQ(grid<double>(4).fill(10).transform(5, 20), 10);
+  // Transform [25, 25, 25, 25] -> range [5, 20], transform to max value 20.
+  EXPECT_EQ(grid<double>(4).fill(25).transform(5, 20), 20);
 }
 
-TEST(Grid, TransformBetweenConstant) {
-  dgrid g(4);
-  g.fill(10);
-  g.transform(5, 20);
-  for (int i = 0; i < 4; ++i) {
-    EXPECT_EQ(g(i), 10);
-  }
+TEST(Grid, OperatorPlusEqual) {
+  EXPECT_EQ(
+      grid<double>(4, 1, {1, 2, 3, 4}) += grid<double>(4, 1, {2, 5, 7, 12}),
+      grid<double>(4, 1, {3, 7, 10, 16}));
+  EXPECT_EQ(
+      grid<double>(4, 1, {1, 2, 3, 4}) += 7,
+      grid<double>(4, 1, {8, 9, 10, 11}));
 }
 
-TEST(Grid, TransformHighConstant) {
-  dgrid g(4);
-  g.fill(25);
-  g.transform(5, 20);
-  for (int i = 0; i < 4; ++i) {
-    EXPECT_EQ(g(i), 20);
-  }
+TEST(Grid, OperatorMinusEqual) {
+  EXPECT_EQ(
+      grid<double>(4, 1, {1, 2, 3, 4}) -= grid<double>(4, 1, {2, 5, 7, 12}),
+      grid<double>(4, 1, {-1, -3, -4, -8}));
 }
 
 }  // namespace

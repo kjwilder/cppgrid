@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cassert>
 #include <fstream>
+#include <functional>
 #include <utility>
 #include <vector>
 
@@ -17,33 +18,32 @@ class grid {
   size_t nr, nc;  // number of rows, columns
   std::vector<T> sto;
 
-  // Initialization Member Functions
-  void initnew(size_t r, size_t c) {
-    nr = r;
-    nc = c;
-    sto.resize(r * c);
-  }
-  void freegrid() {
-    initnew(0, 0);
-  }
-
   // Consistency Checking Functions
-  int inrange(size_t r, size_t c) const {
-    return r < nr && c < nc && sto.size() > 0;
-  }
-  int invariant() const {
-    return sto.size() == nr * nc;
-  }
+  int consistent() const { return sto.size() == nr * nc; }
+  int inrange(size_t r, size_t c) const { return r < nr && c < nc; }
 
  public:
   // Constructors, Operator=
   grid() : nr(0), nc(0) { }
   explicit grid(size_t r) : nr(r), nc(1), sto(r) { }
   grid(size_t r, size_t c) : nr(r), nc(c), sto(r * c) { }
+  grid(size_t r, size_t c, const std::vector<T>& v) : nr(r), nc(c), sto(v) {
+    assert(r * c == v.size());
+  }
   grid(const grid &m) : nr(m.rows()), nc(m.cols()), sto(m.storage()) { }
   grid<T>& operator=(const grid &m);
+  bool operator==(const grid& m) const {
+    return nr == m.nr && nc == m.nc && sto == m.sto;
+  }
+  bool operator==(const T& val) const {
+    return std::any_of(begin(), end(), [val](const T& el){ return el == val; });
+  }
   void subgrid(
       grid* m, size_t r, size_t c, size_t numrows, size_t numcols) const;
+  typename std::vector<T>::iterator begin() { return sto.begin(); }
+  typename std::vector<T>::iterator end() { return sto.end(); }
+  typename std::vector<T>::const_iterator begin() const { return sto.begin(); }
+  typename std::vector<T>::const_iterator end() const { return sto.end(); }
 
   // Basic Member Access Functions
   size_t rows() const { return nr; }
@@ -75,35 +75,24 @@ class grid {
   }
   T get(size_t r, size_t c) const { return inrange(r, c) ? (*this)(r, c) : 0; }
 
-  // Initialization Member Functions
-  void init() { init(0, 0); }
-  void init(size_t r) { init(r, 1); }
-  void init(size_t r, size_t c) {
-    if (r > 0 && c > 0 && r * c <= nr * nc && r * c * 2 >= nr * nc) {
-      nr = r;
-      nc = c;
-    } else {
-      freegrid();
-      initnew(r, c);
-    }
+  void resize(size_t r, size_t c) { nr = r; nc = c; sto.resize(r * c); }
+  void resize(size_t r) { resize(r, 1); }
+  void resize() { resize(0, 0); }
+  grid<T>& fill(const T& val) {
+    std::fill(begin(), end(), val);
+    return *this;
   }
-  void fill(const T& val) {
-    std::fill(sto.begin(), sto.end(), val);
-  }
-  void clear() {
-    fill(0);
-  }
+  grid<T>& clear() { return fill(0); }
 
   // I/O Functions
   void write(const char *file);
   int write(std::ofstream& os);
   int read(const char* file);
   int read(std::ifstream& is);
-  int loadpgm(const char* pgmname);
-  int savepgm(const char* pgmname);
+  int loadpgm(const std::string& pgmname);
+  int savepgm(const std::string& pgmname);
   size_t size() const;
-  void dump(size_t max = 0) const;
-  void dump2(size_t max = 0) const;
+  void dump(size_t max = 0, bool invert = false) const;
 
   // Useful Utility Functions
   grid<T>& operator<<(grid &m);
@@ -112,8 +101,8 @@ class grid {
   grid<T>& operator+=(T i);
   grid<T>& operator-=(T i) { return *this += -i;  }
   grid<T> operator*(const grid &m) const;
-  void scale(T val);
-  void transform(T minval, T maxval);
+  grid<T>& scale(T val);
+  grid<T>& transform(T minval, T maxval);
   const grid<T> transpose() const;
   grid<T> LU() const;
   grid<T> inverse() const;
@@ -129,32 +118,32 @@ class grid {
 };  // class grid
 
 // __________________________________________________________________________
-// Dump a grid; Will only work for classes with ostream<<(const T&).
+// Dump a grid - for classes with ostream<<(const T&).
 
 template <class T>
-void grid<T>::dump(size_t max) const {
-  if (max == -1)
-    max = nc;
-  for (size_t j = 0; j < max; ++j) {
-    for (size_t i = 0; i < nr; ++i) {
-      std::cout << ((*this)(i, j)) << " ";
+void grid<T>::dump(size_t max, bool invert) const {
+  if (invert) {
+    if (max == 0) {
+      max = nr;
     }
-    std::cout << "\n";
-  }
-}
-
-// __________________________________________________________________________
-// Dump a grid; Will only work for classes with ostream<<(const T&).
-
-template <class T>
-void grid<T>::dump2(size_t max) const {
-  if (max == -1)
-    max = nr;
-  for (size_t i = 0; i < max; ++i) {
-    for (size_t j = 0; j < nc; ++j) {
-      std::cout << ((*this)(i, j)) << " ";
+    max = std::min(nr, max);
+    for (size_t i = 0; i < max; ++i) {
+      for (size_t j = 0; j < nc; ++j) {
+        std::cout << ((*this)(i, j)) << " ";
+      }
+      std::cout << "\n";
     }
-    std::cout << "\n";
+  } else {
+    if (max == 0) {
+      max = nc;
+    }
+    max = std::min(nc, max);
+    for (size_t j = 0; j < max; ++j) {
+      for (size_t i = 0; i < nr; ++i) {
+        std::cout << ((*this)(i, j)) << " ";
+      }
+      std::cout << "\n";
+    }
   }
 }
 
@@ -163,7 +152,7 @@ void grid<T>::dump2(size_t max) const {
 
 template<class T>
 void grid<T>::write(const char *file) {
-  assert(invariant());
+  assert(consistent());
   Ofstream(ofs, file);
   if (!ofs) {
     std::cerr << "Unable to write a grid to file [" << file << "]."
@@ -182,7 +171,7 @@ void grid<T>::write(const char *file) {
 
 template<class T>
 int grid<T>::write(std::ofstream& ofs) {
-  assert(invariant());
+  assert(consistent());
 
   // if (!ofs.is_open())
   if (!ofs)
@@ -208,7 +197,7 @@ size_t grid<T>::size() const {
 
 template<class T>
 int grid<T>::read(const char *file) {
-  assert(invariant());
+  assert(consistent());
   Ifstream(ifs, file);
   if (!ifs)
     return 0;
@@ -225,11 +214,10 @@ int grid<T>::read(const char *file) {
     }
   }
 
-  freegrid();
+  resize(0, 0);
   if (!memcmp(version, "GR11", 4)) {
     varread(ifs, nr);
     varread(ifs, nc);
-    assert(nr >= 0 && nc >= 0);
     if (nr > 0 && nc > 0) {
       sto.resize(nr * nc);
       arrayread(ifs, sto, nr * nc);
@@ -247,7 +235,7 @@ int grid<T>::read(const char *file) {
       }
     }
   }
-  assert(invariant());
+  assert(consistent());
 
   return 1;
 }
@@ -257,13 +245,13 @@ int grid<T>::read(const char *file) {
 
 template<class T>
 int grid<T>::read(std::ifstream& is) {
-  assert(invariant());
+  assert(consistent());
 
   // if (!is.is_open() || is.eof())
   if (!is || is.eof())
     return 0;
 
-  freegrid();
+  resize(0, 0);
   varread(is, nr);
   varread(is, nc);
   assert(nr >= 0 && nc >= 0);
@@ -271,7 +259,7 @@ int grid<T>::read(std::ifstream& is) {
     sto = new T[nr * nc];
     arrayread(is, sto, nr * nc);
   }
-  assert(invariant());
+  assert(consistent());
   return 1;
 }
 
@@ -294,12 +282,11 @@ grid<T>& grid<T>::operator=(const grid& m) {
 template<class T>
 void grid<T>::subgrid(
     grid* m, size_t r, size_t c, size_t numrows, size_t numcols) const {
-  assert(invariant() && m->invariant());
   assert(r >= 0 && c >= 0 && numrows >= 0 && numcols >= 0);
   assert(r + numrows <= nr && c + numcols <= nc);
 
   if (this != m) {
-    m->init(numrows, numcols);
+    m->resize(numrows, numcols);
     if (nr > 0 && nc > 0) {
       for (size_t i = 0; i < m->nr; ++i) {
         for (size_t j = 0; j < m->nc; ++j) {
@@ -312,7 +299,6 @@ void grid<T>::subgrid(
     subgrid(tmp, r, c, numrows, numcols);
     m << tmp;
   }
-  assert(invariant() && m->invariant());
 }
 
 // __________________________________________________________________________
@@ -320,13 +306,13 @@ void grid<T>::subgrid(
 
 template<class T>
 grid<T>& grid<T>::operator<<(grid &m) {
-  assert(invariant() && m.invariant());
   if (this != &m) {
-    freegrid();
-    nr = m.nr; nc = m.nc; sto = m.storage();
-    m.initnew(0, 0);
+    resize(0, 0);
+    nr = m.nr;
+    nc = m.nc;
+    sto = m.storage();  // TODO(wilder): Fix this, need to swap sto and m.sto.
+    m.resize(0, 0);
   }
-  assert(invariant() && m.invariant());
   return *this;
 }
 
@@ -335,14 +321,8 @@ grid<T>& grid<T>::operator<<(grid &m) {
 
 template<class T>
 grid<T>& grid<T>::operator+=(const grid& m) {
-  assert(invariant() && m.invariant());
   assert(nr == m.nr && nc == m.nc);
-
-  for (size_t i = 0; i < nr * nc; ++i) {
-    sto[i] += m.storage()[i];
-  }
-
-  assert(invariant() && m.invariant());
+  std::transform(begin(), end(), m.sto.begin(), begin(), std::plus<T>());
   return *this;
 }
 
@@ -351,14 +331,8 @@ grid<T>& grid<T>::operator+=(const grid& m) {
 
 template<class T>
 grid<T>& grid<T>::operator-=(const grid& m) {
-  assert(invariant() && m.invariant());
   assert(nr == m.nr && nc == m.nc);
-
-  for (size_t i = 0; i < nr * nc; ++i) {
-    sto[i] -= m.storage()[i];
-  }
-
-  assert(invariant() && m.invariant());
+  std::transform(begin(), end(), m.sto.begin(), begin(), std::minus<T>());
   return *this;
 }
 
@@ -366,55 +340,49 @@ grid<T>& grid<T>::operator-=(const grid& m) {
 // Add a fixed value to each element of a grid
 
 template<class T>
-grid<T>& grid<T>::operator+=(T ii) {
-  for (size_t i = 0; i < nr * nc; ++i) {
-    sto[i] += ii;
+grid<T>& grid<T>::operator+=(T val) {
+  for (auto& el : sto) { el += val; }
+  return *this;
+}
+
+// __________________________________________________________________________
+// Scale the values of a grid so that the largest magnitude is 'val'.
+
+template<class T>
+grid<T>& grid<T>::scale(T val) {
+  if (nr > 0 && nc > 0) {
+    const T gmin = *std::min_element(begin(), end());
+    const T gmax = *std::max_element(begin(), end());
+    const T absmax = std::max(std::abs(gmin), std::abs(gmax));
+    if (absmax != 0) {
+      for (auto& el : *this) { el = el * val / absmax; }
+    }
   }
   return *this;
 }
 
 // __________________________________________________________________________
-// Scale the values of a grid so that the largest equals 1.
+// Linearly transform the values of a grid so that the values range
+// from 'val1' to 'val2'.
 
 template<class T>
-void grid<T>::scale(T val) {
+grid<T>& grid<T>::transform(T val1, T val2) {
   if (nr == 0 || nc == 0)
-    return;
-  const T gmax = *std::max_element(sto.begin(), sto.end());
-  if (gmax <= 0) {
-    return;
-  }
-  for (size_t i = 0; i < nr; ++i) {
-    for (size_t j = 0; j < nc; ++j) {
-      (*this)(i, j) = (*this)(i, j) * val / gmax;
-    }
-  }
-}
-
-// __________________________________________________________________________
-// Perform a linear transformation on the values of a grid so that the
-// values range from 'val1' to 'val2'
-
-template<class T>
-void grid<T>::transform(T val1, T val2) {
-  if (nr == 0 || nc == 0)
-    return;
-  const T gmin = *std::min_element(sto.begin(), sto.end());
-  const T gmax = *std::max_element(sto.begin(), sto.end());
-  const T range = gmax - gmin;
+    return *this;
+  const T gmin = *std::min_element(begin(), end());
+  const T gmax = *std::max_element(begin(), end());
+  const T oldrange = gmax - gmin;
   const T newrange = val2 - val1;
-  if (range > 0) {
-    for (size_t i = 0; i < nr; ++i) {
-      for (size_t j = 0; j < nc; ++j) {
-        (*this)(i, j) = ((*this)(i, j) - gmin) * newrange / range + val1;
-      }
+  if (oldrange != 0) {
+    for (auto& el : *this) {
+      el = (el - gmin) * newrange / oldrange + val1;
     }
   } else if (gmin < val1) {
     fill(val1);
   } else if (gmax > val2) {
     fill(val2);
   }
-  assert(invariant());
+  return *this;
 }
 
 // __________________________________________________________________________
@@ -556,11 +524,11 @@ void grid<T>::sort(int col, int left, int right) {
 // __________________________________________________________________________
 
 template <class T>
-int grid<T>::loadpgm(const char* pgmname) {
-  // Open the pgm file
+int grid<T>::loadpgm(const std::string& pgmname) {
   Ifstream(ifs, pgmname);
-  if (!ifs)
+  if (!ifs) {
     return 0;
+  }
 
   // Find the first line that doesn't begin with white space.
   char buf[255];
@@ -569,27 +537,31 @@ int grid<T>::loadpgm(const char* pgmname) {
   do {
     ifs.Getline(buf, 255);
   } while (!ifs.eof() && (buf[0] == 0 || buf[0] == ' '));
-  if (ifs.eof())
+  if (ifs.eof()) {
     return 0;
+  }
 
   // Make sure the file is a pgm file.  Determine the pgm mode, the
   // dimensions, and the range of pixel values
   matches = sscanf(buf, "%c%1d%d%d%d", &pchar, &mode, &r, &c, &matches);
-  if (matches < 2 || mode < 2 || mode > 6)
+  if (matches < 2 || mode < 2 || mode > 6) {
     return 0;
+  }
 
   if (matches < 5) {
     ifs.Getline(buf, 255);
-    while (!ifs.eof() && (buf[0] == '#' || buf[0] == 0))
-    ifs.Getline(buf, 255);
+    while (!ifs.eof() && (buf[0] == '#' || buf[0] == 0)) {
+      ifs.Getline(buf, 255);
+    }
     sscanf(buf, "%d %d", &r, &c);
     ifs.Getline(buf, 255);
     sscanf(buf, "%d", &maxval);
-    if (ifs.eof() || r <= 0 || c <= 0 || maxval <= 0)
+    if (ifs.eof() || r <= 0 || c <= 0 || maxval <= 0) {
       return 0;
+    }
   }
 
-  init(r, c);
+  resize(r, c);
   int i, j;
   switch (mode) {
     case 2:
@@ -646,16 +618,12 @@ int grid<T>::loadpgm(const char* pgmname) {
 // __________________________________________________________________________
 
 template <class T>
-int grid<T>::savepgm(const char* pgmname) {
-  // Open the pgm file
+int grid<T>::savepgm(const std::string& pgmname) {
   Ofstream(ofs, pgmname);
   if (!ofs) {
     return 0;
   }
-
-  // Print the pgm header
   ofs << "P5\n" << nr << " " << nc << "\n255\n";
-
   for (size_t j = 0; j < nc; ++j) {
     for (size_t i = 0; i < nr; ++i) {
       char c = static_cast<char>((*this)(i, j));
@@ -669,28 +637,12 @@ int grid<T>::savepgm(const char* pgmname) {
 //
 template<class T>
 const grid<T> operator+(const grid<T>& m, const grid<T>& n) {
-  grid<T> p = m; return (p += n);
+  auto p = m; return p += n;
 }
 
 template<class T>
 const grid<T> operator-(const grid<T>& m, const grid<T>& n) {
-  grid<T> p = m; return (p -= n);
+  auto p = m; return p -= n;
 }
-
-typedef grid<char> cgrid;
-typedef grid<unsigned char> ucgrid;
-typedef grid<int> igrid;
-typedef grid<unsigned int> uigrid;
-typedef grid<int64_t> lgrid;
-typedef grid<float> fgrid;
-typedef grid<double> dgrid;
-typedef std::vector<cgrid> cgrids;
-typedef std::vector<ucgrid> ucgrids;
-typedef std::vector<ucgrids> ucgridss;
-typedef std::vector<igrid> igrids;
-typedef std::vector<uigrid> uigrids;
-typedef std::vector<lgrid> lgrids;
-typedef std::vector<fgrid> fgrids;
-typedef std::vector<dgrid> dgrids;
 
 #endif  // GRID_H_
