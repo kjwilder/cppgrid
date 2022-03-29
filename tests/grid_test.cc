@@ -34,21 +34,25 @@ TEST(Grid, ConstructorZeroColumns) {
   EXPECT_EQ(g.storage().size(), 0);
 }
 
+TEST(Grid, OrderingIsColumnMajor) {
+  grid<int> g(2, 2, {1, 2, 3, 4});
+  EXPECT_EQ(g(1, 0), 2);
+  EXPECT_EQ(g(0, 1), 3);
+}
+
 TEST(Grid, Inverse) {
   grid<double> gi = grid<double>(2, 2, {2, 2, 1, 4}).inverse();
   EXPECT_NEAR(gi(0, 0), 2.0 / 3.0, 1e-6);
-  EXPECT_NEAR(gi(0, 1), -1.0 / 6.0, 1e-6);
   EXPECT_NEAR(gi(1, 0), -1.0 / 3.0, 1e-6);
+  EXPECT_NEAR(gi(0, 1), -1.0 / 6.0, 1e-6);
   EXPECT_NEAR(gi(1, 1), 1.0 / 3.0, 1e-6);
 }
 
 TEST(Grid, ScaleInt) {
-  EXPECT_EQ(
-      grid<int>(3, 1, {3, 5, 8}).scale(3),
-      grid<int>(3, 1, {1, 1, 3}));
-  EXPECT_EQ(
-      grid<int>(3, 1, {3, 5, -8}).scale(3),
-      grid<int>(3, 1, {1, 1, -3}));
+  EXPECT_EQ(grid<int>({3, 5, 8}).scale(3),
+            grid<int>({1, 1, 3}));
+  EXPECT_EQ(grid<int>({3, 5, -8}).scale(3),
+            grid<int>({1, 1, -3}));
 
   EXPECT_EQ(grid<int>().scale(5), grid<int>());
   EXPECT_EQ(grid<int>(1, 0).scale(5), grid<int>(1, 0));
@@ -58,22 +62,20 @@ TEST(Grid, ScaleInt) {
 }
 
 TEST(Grid, ScaleDouble) {
-  EXPECT_EQ(
-      grid<double>(3, 1, {3, 5, 8}).scale(3),
-      grid<double>(3, 1, {9.0 / 8.0, 15.0 / 8.0, 3}));
+  EXPECT_EQ(grid<double>({3, 5, 8}).scale(3),
+            grid<double>({9.0 / 8.0, 15.0 / 8.0, 3}));
 }
 
 TEST(Grid, TransformInt) {
-  EXPECT_EQ(
-      grid<int>(4, 1, {1, 2, 4, 8}).transform(5, 20),
-      grid<int>(4, 1, {5, 7, 11, 20}));
+  EXPECT_EQ(grid<int>({1, 2, 4, 8}).transform(5, 20),
+            grid<int>({5, 7, 11, 20}));
 }
 
 TEST(Grid, TransformDouble) {
-  auto g = grid<double>(4, 1, {1, 2, 4, 8}).transform(5, 20);
+  auto g = grid<double>({1, 2, 4, 8}).transform(5, 20);
   EXPECT_NEAR(g(0), 5.0, 1e-6);
-  EXPECT_NEAR(g(1), 7.1428571, 1e-6);
-  EXPECT_NEAR(g(2), 11.4285714, 1e-6);
+  EXPECT_NEAR(g(1), 50.0 / 7.0, 1e-6);
+  EXPECT_NEAR(g(2), 80.0 / 7.0, 1e-6);
   EXPECT_NEAR(g(3), 20.0, 1e-6);
 }
 
@@ -87,18 +89,30 @@ TEST(Grid, TransformConstants) {
 }
 
 TEST(Grid, OperatorPlusEqual) {
-  EXPECT_EQ(
-      grid<double>(4, 1, {1, 2, 3, 4}) += grid<double>(4, 1, {2, 5, 7, 12}),
-      grid<double>(4, 1, {3, 7, 10, 16}));
-  EXPECT_EQ(
-      grid<double>(4, 1, {1, 2, 3, 4}) += 7,
-      grid<double>(4, 1, {8, 9, 10, 11}));
+  auto gd = grid<double>({1, 2, 3, 4});
+  EXPECT_EQ(gd += grid<double>({2, 5, 7, 12}),
+            grid<double>({3, 7, 10, 16}));
+  EXPECT_EQ(gd, grid<double>({3, 7, 10, 16}));
+
+  gd = grid<double>({1, 2, 3, 4});
+  EXPECT_EQ(gd += 7, grid<double>({8, 9, 10, 11}));
+  EXPECT_EQ(gd, grid<double>({8, 9, 10, 11}));
+}
+
+TEST(Grid, OperatorPlus) {
+  auto gd = grid<double>({1, 2, 3, 4});
+  EXPECT_EQ(gd + grid<double>({2, 5, 7, 12}),
+            grid<double>({3, 7, 10, 16}));
+  EXPECT_EQ(gd, grid<double>({1, 2, 3, 4}));
+
+  gd = grid<double>({1, 2, 3, 4});
+  EXPECT_EQ(gd + 7, grid<double>({8, 9, 10, 11}));
+  EXPECT_EQ(gd, grid<double>({1, 2, 3, 4}));
 }
 
 TEST(Grid, OperatorMinusEqual) {
-  EXPECT_EQ(
-      grid<double>(4, 1, {1, 2, 3, 4}) -= grid<double>(4, 1, {2, 5, 7, 12}),
-      grid<double>(4, 1, {-1, -3, -4, -8}));
+  EXPECT_EQ(grid<double>({1, 2, 3, 4}) -= grid<double>({2, 5, 7, 12}),
+            grid<double>({-1, -3, -4, -8}));
 }
 
 }  // namespace

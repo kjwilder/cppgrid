@@ -19,7 +19,7 @@ template <class T>
 class grid {
  private:
   size_t nr, nc;  // number of rows, columns
-  std::vector<T> sto;
+  std::vector<T> sto;  // column major grid storage
 
   // Consistency Checking Functions
   int consistent() const { return sto.size() == nr * nc; }
@@ -31,10 +31,11 @@ class grid {
   explicit grid(size_t r) : nr(r), nc(1), sto(r) { }
   grid(size_t r, size_t c) : nr(r), nc(c), sto(r * c) { }
   grid(size_t r, size_t c, const std::vector<T>& v) : nr(r), nc(c), sto(v) {
-    assert(r * c == v.size());
-  }
+    assert(r * c == v.size()); }
   grid(const grid &m) : nr(m.rows()), nc(m.cols()), sto(m.storage()) { }
-  grid<T>& operator=(const grid &m);
+  explicit grid(const std::vector<T>& v) : nr(v.size()), nc(1), sto(v) { }
+
+  grid& operator=(const grid &m);
   bool operator==(const grid& m) const {
     return nr == m.nr && nc == m.nc && sto == m.sto;
   }
@@ -81,11 +82,8 @@ class grid {
   void resize(size_t r, size_t c) { nr = r; nc = c; sto.resize(r * c); }
   void resize(size_t r) { resize(r, 1); }
   void resize() { resize(0, 0); }
-  grid<T>& fill(const T& val) {
-    std::fill(begin(), end(), val);
-    return *this;
-  }
-  grid<T>& clear() { return fill(0); }
+  grid& fill(const T& val) { std::fill(begin(), end(), val); return *this; }
+  grid& clear() { return fill(0); }
 
   // I/O Functions
   void write(const char *file);
@@ -98,17 +96,18 @@ class grid {
   void dump(size_t max = 0, bool invert = false) const;
 
   // Useful Utility Functions
-  grid<T>& operator<<(grid &m);
-  grid<T>& operator+=(const grid &m);
-  grid<T>& operator-=(const grid &m);
-  grid<T>& operator+=(T i);
-  grid<T>& operator-=(T i) { return *this += -i;  }
-  grid<T> operator*(const grid &m) const;
-  grid<T>& scale(T val);
-  grid<T>& transform(T minval, T maxval);
-  const grid<T> transpose() const;
-  grid<T> LU() const;
-  grid<T> inverse() const;
+  grid& operator<<(grid &m);
+  grid& operator+=(const grid &m);
+  grid& operator-=(const grid &m);
+  grid& operator+=(T val);
+  grid operator+ (T val) const;
+  grid& operator-=(T val) { return *this += -val;  }
+  grid operator*(const grid &m) const;
+  grid& scale(T val);
+  grid& transform(T minval, T maxval);
+  const grid transpose() const;
+  grid LU() const;
+  grid inverse() const;
   int offpixels() {
     int c = 0;
     for (size_t i = 0; i < nr * nc; ++i) {
@@ -346,6 +345,14 @@ template<class T>
 grid<T>& grid<T>::operator+=(T val) {
   for (auto& el : sto) { el += val; }
   return *this;
+}
+
+// __________________________________________________________________________
+// Add a fixed value to each element of a grid
+
+template<class T>
+grid<T> grid<T>::operator+(T val) const {
+  return grid<T>(*this) += val;
 }
 
 // __________________________________________________________________________
