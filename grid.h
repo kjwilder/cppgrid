@@ -7,10 +7,13 @@
 #include <cassert>
 #include <fstream>
 #include <functional>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "utils.h"
+
+namespace grid_h {
 
 template <class T>
 class grid {
@@ -644,5 +647,7 @@ template<class T>
 const grid<T> operator-(const grid<T>& m, const grid<T>& n) {
   auto p = m; return p -= n;
 }
+
+};  // namespace grid_h
 
 #endif  // GRID_H_

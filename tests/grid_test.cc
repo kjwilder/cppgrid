@@ -5,6 +5,8 @@
 #include "grid.h"
 #include "gtest/gtest.h"
 
+using grid_h::grid;
+
 namespace {
 
 TEST(Grid, ConstructorEmpty) {
@@ -68,8 +70,7 @@ TEST(Grid, TransformInt) {
 }
 
 TEST(Grid, TransformDouble) {
-  grid<double> g(4, 1, {1, 2, 4, 8});
-  g.transform(5, 20);
+  auto g = grid<double>(4, 1, {1, 2, 4, 8}).transform(5, 20);
   EXPECT_NEAR(g(0), 5.0, 1e-6);
   EXPECT_NEAR(g(1), 7.1428571, 1e-6);
   EXPECT_NEAR(g(2), 11.4285714, 1e-6);
