@@ -24,6 +24,7 @@
 #include <numeric>
 #include <algorithm>
 #include <string>
+#include <utility>
 
 #ifndef USE_ASSERTS
 #ifndef NDEBUG
@@ -57,7 +58,7 @@ class grid
   uint nr, nc; // number of rows and columns
 
   // Consistency Checking Functions
-  bool inrange(int r, int c) const 
+  bool inrange(int r, int c) const
     { return (r >= 0 && c >= 0 && r < (int)nr && c < (int)nc); }
   bool inrange(uint r, uint c) const { return (r < nr && c < nc); }
   bool inrange1(uint r) const { return (r < (nr * nc)); }
@@ -140,9 +141,9 @@ class grid
     { assert(inrange(r, c)); return sto[c * nr + r]; }
 
   template<class S> T& operator()(const S* p)
-    { assert(inrange(p[0], p[1])); return(operator()(p[0], p[1])); } 
+    { assert(inrange(p[0], p[1])); return(operator()(p[0], p[1])); }
   template<class S> const T& operator()(const S* p) const
-    { assert(inrange(p[0], p[1])); return(operator()(p[0], p[1])); } 
+    { assert(inrange(p[0], p[1])); return(operator()(p[0], p[1])); }
 
   // Safe operator(), but very inefficient.
   void set(int r, int c, T val)
@@ -150,9 +151,9 @@ class grid
   T get(int r, int c) const
     { return (inrange(r, c) ? operator()(r, c) : 0); }
 
-  T max() const 
+  T max() const
     { return (size() == 0) ? 0 : *std::max_element(begin(), end()); }
-  T min() const 
+  T min() const
     { return (size() == 0) ? 0 : *std::min_element(begin(), end()); }
 
   // I/O Functions
@@ -166,7 +167,7 @@ class grid
   void swap(vector<T>& v)
     { nr = v.size(); nc = 1; sto.swap(v); }
   void swap(grid<T>& g) {
-    if (this != &g) 
+    if (this != &g)
       { sto.swap(g.sto); std::swap(nr, g.nr); std::swap(nc, g.nc); }
   }
   grid<T>& operator<<(vector<T> &v)
@@ -181,7 +182,7 @@ class grid
   void cbind(const grid<T>& g);
 
   // Return the number of 0 or non-0 pixels in a grid.
-  uint offpixels() const { 
+  uint offpixels() const {
     uint c = 0;
     for (const_iterator i = begin(); i != end(); ++i)
       c += (*i == 0);
@@ -357,7 +358,7 @@ template<class T>
 void dumpfixed(const grid<T>& g, std::ostream& os=std::cout,
                uint tr=0, uint max=0, int prec=4, char sep=' ')
 {
-  
+
   std::ios::fmtflags f = os.setf(std::ios::fixed);
   dump(g, os, tr, max, prec, sep);
   os.flags(f);
@@ -659,7 +660,7 @@ template<class T> void grid<T>::rbind(const grid<T>& g)
   T* thisp = &front(), *tmpp = &tmp[0];
   const T* gp = &g(0, 0);
   for (uint i = 0; i != ny; ++i) {
-    std::copy(thisp, thisp + nx, tmpp); 
+    std::copy(thisp, thisp + nx, tmpp);
     std::copy(gp, gp + gx, tmpp + nx);
     thisp += nx; gp += gx; tmpp += nx + gx;
   }
@@ -896,7 +897,7 @@ int LU(const grid<T>& a, grid<T>& g, ivector& pivots,
   g = a;
   if (gridtype == trigrid)
     return 0;
-  
+
   int info = 0;
   for (uint i = 0; i < n - 1; ++i)
   {
@@ -1539,12 +1540,12 @@ T var(const grid<T>& g, const string& rc="", uint ind=0)
 {
   T total = 0, m = mean(g, rc, ind);
   const T* curr;
-  if (rc == "row" && g.cols() > 1) { 
+  if (rc == "row" && g.cols() > 1) {
     curr = &g(ind, 0);
     for (uint i = 0; i != g.cols(); ++i)
       { total += (*curr - m) * (*curr - m); curr += g.rows(); }
     total /= (g.cols() - 1.0);
-  } else if (rc == "col" && g.rows() > 1) { 
+  } else if (rc == "col" && g.rows() > 1) {
     curr = &g(0, ind);
     for (uint i = 0; i != g.rows(); ++i)
       { total += (*curr - m) * (*curr - m); curr++; }
