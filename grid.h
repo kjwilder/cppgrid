@@ -7,6 +7,7 @@
 #include <cassert>
 #include <fstream>
 #include <functional>
+#include <numeric>
 #include <string>
 #include <utility>
 #include <vector>
@@ -116,7 +117,7 @@ class grid {
     }
   }
   int onpixels() { return(nr * nc - offpixels()); }
-  void sort(int col = 0, int left = -1, int right = -1);
+  void sort(size_t col);
 };  // class grid
 
 // __________________________________________________________________________
@@ -497,38 +498,27 @@ const grid<T> grid<T>::transpose() const {
 }
 
 // __________________________________________________________________________
+// Reorder all columns using the permutation that sorts a specified column.
 
 template<class T>
-void grid<T>::sort(int col, int left, int right) {
-  if (left == -1 && right == -1) {
-    left = 0;
-    right = nr - 1;
+void grid<T>::sort(size_t col) {
+  if (storage().size() == 0) {
+    return;
   }
-
-  int i = left;
-  int j = right;
-
-  T midval = (*this)((left + right) / 2, col);
-  do {
-    while ((*this)(i, col) < midval && i < right) {
-      ++i;
+  auto col_start = begin() + col * rows();
+  std::vector<size_t> permutation(rows());
+  std::iota(permutation.begin(), permutation.end(), 0);
+  std::sort(permutation.begin(), permutation.end(),
+      [col_start](size_t i, size_t j) {
+        return *(col_start + i) < *(col_start + j); });
+  std::vector<T> tmp(rows());
+  auto pos = begin();
+  for (size_t j = 0; j < cols(); ++j) {
+    std::copy(pos, pos + rows(), tmp.begin());
+    for (auto ip = permutation.begin(); ip != permutation.end(); ++ip) {
+      *(pos++) = tmp[*ip];
     }
-    while (midval < (*this)(j, col) && j > left) {
-      --j;
-    }
-
-    if (i <= j) {
-      for (int k = 0; k < nc; ++k) {
-        std::swap((*this)(i, k), (*this)(j, k));
-      }
-      ++i;
-      --j;
-    }
-  } while (i <= j);
-  if (left < j)
-    sort(col, left, j);
-  if (i < right)
-    sort(col, i, right);
+  }
 }
 
 // __________________________________________________________________________

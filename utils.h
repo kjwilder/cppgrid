@@ -7,6 +7,8 @@
 #include <cstdlib>
 #include <iostream>
 
+namespace utils_h {
+
 /*#define WIN95*/
 #ifdef WIN95
 #define NOX
@@ -80,5 +82,7 @@ template <class T>
 inline double angle(const T x1, const T y1, const T x2, const T y2) {
   return atan2(y1 - y2, x2 - x1);
 }
+
+};  // namespace utils_h
 
 #endif  // UTILS_H_

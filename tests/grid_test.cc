@@ -1,13 +1,9 @@
-#include <chrono>
-#include <iostream>
-#include <thread>
-
 #include "grid.h"
 #include "gtest/gtest.h"
 
-using grid_h::grid;
-
 namespace {
+
+using grid_h::grid;
 
 TEST(Grid, ConstructorEmpty) {
   grid<int> g;
@@ -113,6 +109,14 @@ TEST(Grid, OperatorPlus) {
 TEST(Grid, OperatorMinusEqual) {
   EXPECT_EQ(grid<double>({1, 2, 3, 4}) -= grid<double>({2, 5, 7, 12}),
             grid<double>({-1, -3, -4, -8}));
+}
+
+TEST(Grid, SortColumn) {
+  auto gd = grid<int>(4, 2, {2, 1, 4, 3, 7, 5, 6, 8});
+  gd.sort(1);  // Sort col 1 (elements 4..7), reorder col 0 (elements 0..3).
+  EXPECT_EQ(gd, grid<int>(4, 2, {1, 4, 2, 3, 5, 6, 7, 8}));
+  gd.sort(0);  // Sort col 0, reorder col 1.
+  EXPECT_EQ(gd, grid<int>(4, 2, {1, 2, 3, 4, 5, 7, 8, 6}));
 }
 
 }  // namespace

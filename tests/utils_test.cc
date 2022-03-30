@@ -1,11 +1,12 @@
-#include <chrono>
-#include <iostream>
-#include <thread>
-
 #include "utils.h"
 #include "gtest/gtest.h"
 
 namespace {
+
+using utils_h::distance;
+using utils_h::distance_squared;
+using utils_h::linfdist;
+using utils_h::angle;
 
 TEST(Utils, Distance) {
   EXPECT_EQ(5.0, distance(0, 0, 3, 4));
