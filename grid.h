@@ -93,7 +93,13 @@ class grid {
   int read(std::ifstream& is);
   int loadpgm(const std::string& pgmname);
   int savepgm(const std::string& pgmname);
-  size_t size() const;
+  size_t written_size() const;
+  friend std::ostream& operator<<(std::ostream& os, const grid& g) {
+    os << "Dim (" << g.nr << ", " << g.nc << ") Storage [ ";
+    for (const auto& el : g.sto) { os << el << " "; }
+    os << "]\n";
+    return os;
+  }
   void dump(size_t max = 0, bool invert = false) const;
 
   // Useful Utility Functions
@@ -106,7 +112,7 @@ class grid {
   grid operator*(const grid &m) const;
   grid& scale(T val);
   grid& transform(T minval, T maxval);
-  const grid transpose() const;
+  grid transpose() const;
   grid LU() const;
   grid inverse() const;
   int offpixels() {
@@ -191,7 +197,7 @@ int grid<T>::write(std::ofstream& ofs) {
 // Calculate the storage size of a grid to be written out
 
 template<class T>
-size_t grid<T>::size() const {
+size_t grid<T>::written_size() const {
   return sizeof(nr) + sizeof(nc) + nr * nc * sizeof(T);
 }
 
@@ -311,10 +317,7 @@ template<class T>
 grid<T>& grid<T>::operator<<(grid &m) {
   if (this != &m) {
     resize(0, 0);
-    nr = m.nr;
-    nc = m.nc;
-    sto = m.storage();  // TODO(wilder): Fix this, need to swap sto and m.sto.
-    m.resize(0, 0);
+    std::swap(*this, m);
   }
   return *this;
 }
@@ -489,12 +492,13 @@ grid<T> grid<T>::inverse() const {
 // __________________________________________________________________________
 
 template<class T>
-const grid<T> grid<T>::transpose() const {
-  grid<T> tp(nc, nr);
+grid<T> grid<T>::transpose() const {
+  grid<T> transpose(nc, nr);
+  auto this_pos = begin();
   for (size_t i = 0; i < nc; ++i)
     for (size_t j = 0; j < nr; ++j)
-      tp(i, j) = (*this)(j, i);
-  return tp;
+      transpose(i, j) = *(this_pos++);
+  return transpose;
 }
 
 // __________________________________________________________________________
@@ -502,14 +506,14 @@ const grid<T> grid<T>::transpose() const {
 
 template<class T>
 void grid<T>::sort(size_t col) {
-  if (storage().size() == 0) {
+  if (sto.size() == 0) {
     return;
   }
-  auto col_start = begin() + col * rows();
+  const auto col_start = begin() + col * rows();
   std::vector<size_t> permutation(rows());
   std::iota(permutation.begin(), permutation.end(), 0);
   std::sort(permutation.begin(), permutation.end(),
-      [col_start](size_t i, size_t j) {
+      [&col_start](size_t i, size_t j) {
         return *(col_start + i) < *(col_start + j); });
   std::vector<T> tmp(rows());
   auto pos = begin();
@@ -586,12 +590,10 @@ int grid<T>::loadpgm(const std::string& pgmname) {
     break;
 
     case 5:
-      for (j = 0; j < c; ++j) {
-        for (i = 0; i < r; ++i) {
-          char c;
-          ifs.read(&c, 1);
-          (*this)(i, j) = c;
-        }
+      char c;
+      for (auto& el : sto) {
+        ifs.read(&c, 1);
+        el = c;
       }
       break;
 
@@ -634,7 +636,7 @@ int grid<T>::savepgm(const std::string& pgmname) {
 }
 
 // __________________________________________________________________________
-//
+
 template<class T>
 const grid<T> operator+(const grid<T>& m, const grid<T>& n) {
   auto p = m; return p += n;

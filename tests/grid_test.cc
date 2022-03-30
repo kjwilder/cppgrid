@@ -112,11 +112,26 @@ TEST(Grid, OperatorMinusEqual) {
 }
 
 TEST(Grid, SortColumn) {
-  auto gd = grid<int>(4, 2, {2, 1, 4, 3, 7, 5, 6, 8});
-  gd.sort(1);  // Sort col 1 (elements 4..7), reorder col 0 (elements 0..3).
-  EXPECT_EQ(gd, grid<int>(4, 2, {1, 4, 2, 3, 5, 6, 7, 8}));
-  gd.sort(0);  // Sort col 0, reorder col 1.
-  EXPECT_EQ(gd, grid<int>(4, 2, {1, 2, 3, 4, 5, 7, 8, 6}));
+  auto gi = grid<int>(4, 2, {2, 1, 4, 3, 7, 5, 6, 8});
+  gi.sort(1);  // Sort col 1 (elements 4..7), reorder col 0 (elements 0..3).
+  EXPECT_EQ(gi, grid<int>(4, 2, {1, 4, 2, 3, 5, 6, 7, 8}));
+  gi.sort(0);  // Sort col 0, reorder col 1.
+  EXPECT_EQ(gi, grid<int>(4, 2, {1, 2, 3, 4, 5, 7, 8, 6}));
+}
+
+TEST(Grid, Transpose) {
+  auto gi = grid<int>(
+      3, 4, {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}).transpose();
+  EXPECT_EQ(gi, grid<int>(
+        4, 3, {1, 4, 7, 10, 2, 5, 8, 11, 3, 6, 9, 12}));
+}
+
+TEST(Grid, OperatorLeftShift) {
+  auto g1 = grid<int>(1, 2, {1, 2});
+  auto g2 = grid<int>(2, 3, {1, 2, 3, 4, 5, 6});
+  g1 << g2;
+  EXPECT_EQ(g1, grid<int>(2, 3, {1, 2, 3, 4, 5, 6}));
+  EXPECT_EQ(g2, grid<int>());
 }
 
 }  // namespace
