@@ -111,11 +111,11 @@ TEST(Grid, OperatorMinusEqual) {
             grid<double>({-1, -3, -4, -8}));
 }
 
-TEST(Grid, SortColumn) {
+TEST(Grid, SortRows) {
   auto gi = grid<int>(4, 2, {2, 1, 4, 3, 7, 5, 6, 8});
-  gi.sort(1);  // Sort col 1 (elements 4..7), reorder col 0 (elements 0..3).
+  gi.sort_rows(1);  // Sort rows based on values of column 1.
   EXPECT_EQ(gi, grid<int>(4, 2, {1, 4, 2, 3, 5, 6, 7, 8}));
-  gi.sort(0);  // Sort col 0, reorder col 1.
+  gi.sort_rows(0);  // Sort rows based on values of column 0.
   EXPECT_EQ(gi, grid<int>(4, 2, {1, 2, 3, 4, 5, 7, 8, 6}));
 }
 
@@ -132,6 +132,32 @@ TEST(Grid, OperatorLeftShift) {
   g1 << g2;
   EXPECT_EQ(g1, grid<int>(2, 3, {1, 2, 3, 4, 5, 6}));
   EXPECT_EQ(g2, grid<int>());
+}
+
+TEST(Grid, RbindOther) {
+  auto g1 = grid<int>(2, 3, {1, 2, 3, 4, 5, 6});
+  auto g2 = grid<int>(1, 3, {7, 8, 9});
+  g1.rbind(g2);
+  EXPECT_EQ(g1, grid<int>(3, 3, {1, 2, 7, 3, 4, 8, 5, 6, 9}));
+}
+
+TEST(Grid, RbindSelf) {
+  auto g1 = grid<int>(2, 3, {1, 2, 3, 4, 5, 6});
+  g1.rbind(g1);
+  EXPECT_EQ(g1, grid<int>(4, 3, {1, 2, 1, 2, 3, 4, 3, 4, 5, 6, 5, 6}));
+}
+
+TEST(Grid, CbindOther) {
+  auto g1 = grid<int>(2, 3, {1, 2, 3, 4, 5, 6});
+  auto g2 = grid<int>(2, 2, {7, 8, 9, 10});
+  g1.cbind(g2);
+  EXPECT_EQ(g1, grid<int>(2, 5, {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}));
+}
+
+TEST(Grid, CbindSelf) {
+  auto g1 = grid<int>(2, 3, {1, 2, 3, 4, 5, 6});
+  g1.cbind(g1);
+  EXPECT_EQ(g1, grid<int>(2, 6, {1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6}));
 }
 
 }  // namespace
