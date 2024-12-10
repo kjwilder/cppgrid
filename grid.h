@@ -446,7 +446,7 @@ grid<T> grid<T>::inverse() const {
 
   for (j = 0; j < nr; ++j) {
     T max = fabs(tmp(j, j));
-    int r = j;
+    size_t r = j;
     for (i = j + 1; i < nr; ++i) {
       if (fabs(tmp(i, j)) > max) {
         max = fabs(tmp(i, j));
