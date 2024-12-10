@@ -438,7 +438,7 @@ grid<T> grid<T>::inverse() const {
   grid<T> tmp = *this;
   assert(nr == nc);
   grid<int> p(nr);
-  int i, j, k;
+  size_t i, j, k;
   for (j = 0; j < nr; ++j)
     p(j) = j;
   grid<double> hv(nr);
