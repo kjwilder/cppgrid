@@ -4,11 +4,11 @@
 #include <algorithm>
 #include <cinttypes>
 #include <cstdio>
+#include <cstring>
 #include <cassert>
 #include <fstream>
 #include <functional>
 #include <numeric>
-#include <string>
 #include <utility>
 #include <vector>
 
