@@ -3,7 +3,7 @@ cc_test(
   copts = ["-Wall", "-Werror"],
   size = "small",
   srcs = ["utils.h", "tests/utils_test.cc"],
-  deps = ["@gtest//:gtest_main"],
+  deps = ["@googletest//:gtest_main"],
 )
 
 cc_test(
@@ -11,5 +11,5 @@ cc_test(
   copts = ["-Wall", "-Werror"],
   size = "small",
   srcs = ["utils.h", "grid.h", "tests/grid_test.cc"],
-  deps = ["@gtest//:gtest_main"],
+  deps = ["@googletest//:gtest_main"],
 )
